@@ -1,4 +1,14 @@
 ﻿<?xml version="1.0"?>
+<!--
+	Author Pavlo Kryvonis
+	10/29/2015
+	
+	Version 0.1
+	
+	Develop with:
+	FlashDevelop 4.5
+	Flex SDK 3.6.0.16995A
+-->
 <mx:Application borderStyle="none"
                 xmlns:mx="http://www.adobe.com/2006/mxml"
                 creationPolicy="auto"
@@ -6,22 +16,17 @@
 
     <mx:Script>
         <![CDATA[
-            /*
-				Author Pavlo Kryvonis
-				10/29/2015
-				
-				Version 0.1
-				
-				Develop with:
-				FlashDevelop 4.5
-				Flex SDK 3.6.0.16995A
-            */
+		/* include below suppose to work to create at least visibility of OOP but no fucking way!!! 
+		 * Even after fixing dozen of errors it still fucking not work.
+		 * So just leave it for.*/
+        
+			/*include "Script.as";*/
+
             [Bindable]
-            private var regDisplay:String;
-            private var reg1:Number;
-            private var reg2:Number;
-            private var regOp:String;
-            private var regPOp:String;
+            private var calcDisplay:String;
+            private var value1:Number;
+            private var value2:Number;
+            private var valueOperator:String;
             private var isNewValue:Boolean;
             private var isError:Boolean;
             private var isOp:Boolean;
@@ -36,9 +41,9 @@
 			}
             private function displayAnswer(answer:Number):void {
                 if (!isNaN(answer) && isFinite(answer)) {
-                    regDisplay = String(answer);
+                    calcDisplay = String(answer);
                 } else {
-                    regDisplay = getErrorText();
+                    calcDisplay = getErrorText();
                     isError = true;
                 }
             }
@@ -59,11 +64,10 @@
             
             private function clearAll():void
             {
-                reg1 = 0.0;
-                reg2 = 0.0;
-                regOp = null;
-                regPOp = null;
-                displayAnswer(reg1);
+                value1 = 0.0;
+                value2 = 0.0;
+                valueOperator = null;
+                displayAnswer(value1);
                 isNewValue = true;
                 isError = false;
                 isOp = false;
@@ -76,15 +80,15 @@
                 
                 if (isError) return;
                 if ("U" == action) { // Undo
-                    regDisplay = regDisplay.substr(0, regDisplay.length - 1);
-                    if (regDisplay.length == 0) {
-                        regDisplay = "0";
+                    calcDisplay = calcDisplay.substr(0, calcDisplay.length - 1);
+                    if (calcDisplay.length == 0 || calcDisplay == "-") {
+                        calcDisplay = "0";
                     }
                 } else if ("F" == action) { // Flip sign
-                    if(regDisplay.substr(0, 1) == "-") {
-                        regDisplay = regDisplay.substr(1, regDisplay.length)
+                    if(calcDisplay.substr(0, 1) == "-") {
+                        calcDisplay = calcDisplay.substr(1, calcDisplay.length)
                     } else {
-                        regDisplay = "-" + regDisplay
+                        calcDisplay = "-" + calcDisplay
                     }
                 } else if ("0" == action || "1" == action || "2" == action
                        || "3" == action || "4" == action || "5" == action
@@ -92,7 +96,7 @@
                        || "9" == action) {
                     addDigit(action);
                 } else if ("." == action) {
-                    if (!isNewValue && regDisplay.indexOf(".") >= 0) {
+                    if (!isNewValue && calcDisplay.indexOf(".") >= 0) {
                         return;
                     } else {
                         if (isNewValue) {
@@ -104,50 +108,50 @@
                        || "*" == action || "/"== action || 
 						"=" == action) { // Operand
                     if (!isOp || action == "=") {
-    	                reg2 = Number(regDisplay);
-	    				reg1 = calculate(regOp, reg1, reg2);
+    	                value2 = Number(calcDisplay);
+	    				value1 = calculate(valueOperator, value1, value2);
 	    				isNewValue = true;
                     }
-    				regOp = action;
-                    isOp = action == "=" ? false : true;
+    				valueOperator = action;
+                     isOp = action == "=" ? false : true;
                 } 
             }
             private function addDigit(digit:String):void
             {
                 isOp = false;
                 // Restrict to 7 numbers
-                if (!isNewValue && regDisplay.length >= 7) {
+                if (!isNewValue && calcDisplay.length >= 7) {
                     return;
                 }
                 if (isNewValue) {
-                    regDisplay = digit;
+                    calcDisplay = digit;
                 } else {
-                    regDisplay = regDisplay + digit;
+                    calcDisplay = calcDisplay + digit;
                 }
                 
                 isNewValue = false;
             }
-            private function calculate(regOp:String, reg1:Number, reg2:Number):Number
+            private function calculate(valueOperator:String, value1:Number, value2:Number):Number
             {
 				var answer:Number;
 				
-                if ("+" == regOp) {
-                    reg1 = reg1 + reg2;
-                } else if ("-" == regOp) {
-                    reg1 = reg1 - reg2;
-                } else if ("*" == regOp) {
-                    reg1 = reg1 * reg2;
-                } else if ("/" == regOp) {
-                    if (reg1 == 0 && reg2 == 0) {
+                if ("+" == valueOperator) {
+                    value1 = value1 + value2;
+                } else if ("-" == valueOperator) {
+                    value1 = value1 - value2;
+                } else if ("*" == valueOperator) {
+                    value1 = value1 * value2;
+                } else if ("/" == valueOperator) {
+                    if (value1 == 0 && value2 == 0) {
                         return 0;
                     }
-                    reg1 = reg1 / reg2;
+                    value1 = value1 / value2;
                 } else { 
-                    reg1 = reg2;
+                    value1 = value2;
                 }
                 // Deal with floating point errors using a precision of 12 (old trick)
                 var correction:Number = Math.pow(10, 12);
-                answer = Math.round(correction * reg1) / correction;
+                answer = Math.round(correction * value1) / correction;
 				displayAnswer(answer);
                 
 				return answer;
@@ -156,7 +160,7 @@
 	</mx:Script>
     
     <mx:Style>
-        Button { fontSize: 9pt; fontFamily: sans-serif; }
+        Button { fontSize: 9pt; fontFamily: arial; }
     </mx:Style>
 
     <mx:Panel title="Calculator"
@@ -173,10 +177,10 @@
                     <mx:TextInput id="calculation"
                                   editable="false"
                                   textAlign="right"
-                                  text="{regDisplay}"
+                                  text="{calcDisplay}"
                                   maxChars="30"
                                   width="100%"
-                                  borderSkin="mx.skins.halo.HaloBorder"
+                                  borderSkin="{null}"
                                   fontSize="14"
                                   fontWeight="bold" />
                 </mx:GridItem>
@@ -191,6 +195,7 @@
 
                 <mx:GridItem>
                     <mx:Button label="+/-"
+							   id="flipSign"
                                click="performAction('F');" />
                 </mx:GridItem>
 
@@ -202,7 +207,7 @@
 
                 <mx:GridItem>
                     <mx:Button label="/"
-                               id="opDiv"
+                               id="divide"
                                click="performAction('/');" />
                 </mx:GridItem>
             </mx:GridRow>
@@ -228,7 +233,7 @@
 
                 <mx:GridItem>
                     <mx:Button label="X"
-                               id="opMul"
+                               id="multiply"
                                click="performAction('*');" />
                 </mx:GridItem>
             </mx:GridRow>
@@ -254,7 +259,7 @@
 
                 <mx:GridItem>
                     <mx:Button label="-"
-                               id="opSub"
+                               id="subtract"
                                click="performAction('-');" />
                 </mx:GridItem>
             </mx:GridRow>
@@ -280,7 +285,7 @@
 
 				<mx:GridItem>
                     <mx:Button label="+"
-                               id="opAdd"
+                               id="add"
                                click="performAction('+');" />
                 </mx:GridItem>
             </mx:GridRow>
@@ -300,7 +305,7 @@
 
                 <mx:GridItem>
                     <mx:Button label="="
-                               id="opEquals"
+                               id="equal"
                                click="performAction('=');" />
                 </mx:GridItem>
             </mx:GridRow>
