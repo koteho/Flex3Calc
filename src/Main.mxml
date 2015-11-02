@@ -11,14 +11,16 @@
 -->
 <mx:Application borderStyle="none"
                 xmlns:mx="http://www.adobe.com/2006/mxml"
+				styleName="basic"
                 creationPolicy="auto"
                 applicationComplete="init();">
-
+<mx:Style source="Style.css"/>
+	
     <mx:Script>
         <![CDATA[
 		/* include below suppose to work to create at least visibility of OOP but no fucking way!!! 
 		 * Even after fixing dozen of errors it still fucking not work.
-		 * So just leave it for. SUKA!!!*/
+		 * So just leave it for.*/
         
 			/*include "Script.as";*/
 
@@ -32,15 +34,71 @@
             private var isOp:Boolean;
             private function init():void {
                 clearAll();
-                calculation.maxWidth = calculation.width;
-                    
+				
+                calculation.maxWidth = calculation.width;				
                 stage.addEventListener(KeyboardEvent.KEY_UP, keyActionHandler, false, 1);
+            }
+			private function performAction(action:String):void
+            {
+                if ("C" == action) { // Clear all
+                    clearAll();
+                }
+                
+                if (isError) return;
+                if ("U" == action) { // Undo
+                    calcDisplay = calcDisplay.substr(0, calcDisplay.length - 1);
+                    if (calcDisplay.length == 0 || calcDisplay == "-") {
+                        calcDisplay = "0";
+                    }
+                } else if ("F" == action) { // Flip sign
+					if (calcDisplay.substr(0, 1) != "0" || calcDisplay.indexOf(".") > -1){
+						if(calcDisplay.substr(0, 1) == "-") {
+							calcDisplay = calcDisplay.substr(1, calcDisplay.length)
+						} else {
+							calcDisplay = "-" + calcDisplay
+						}
+					} else return;
+                    
+                }else if ("0" == action) {
+					if(calcDisplay.substr(0, 1) != "0" || calcDisplay.length >= 2){
+						addDigit(action);}
+					else return;
+				}else if ("1" == action || "2" == action || "3" == action 
+					   || "4" == action || "5" == action || "6" == action 					   
+                       || "7" == action || "8" == action || "9" == action){
+                    addDigit(action);
+                } else if ("." == action) {
+                    if (!isNewValue && calcDisplay.indexOf(".") >= 0) {
+                        return;
+                    } else {
+                        if (isNewValue) {
+                            action = "0" + action;
+                        }
+                    }
+                    addDigit(action);
+                } else if ("+" == action || "-" == action
+                        || "*" == action || "/"== action
+						|| "=" == action) { // Operand
+                    if (!isOp || action == "=") {
+    	                value2 = Number(calcDisplay);
+	    				value1 = calculate(valueOperator, value1, value2);
+	    				isNewValue = true;
+                    }
+    				valueOperator = action;
+                    isOp = action == "=" ? false : true;
+                }				
             }
 			private function getErrorText():String {
 				return "Error";			
 			}
+			private function getErrorOutOfRange():String {
+				return "You ot ouf range";			
+			}
             private function displayAnswer(answer:Number):void {
-                if (!isNaN(answer) && isFinite(answer)) {
+                if (answer <= -10000 || answer >= 10000){
+					calcDisplay = getErrorOutOfRange();
+                    isError = true;
+				} else if (!isNaN(answer) && isFinite(answer)) {
                     calcDisplay = String(answer);
                 } else {
                     calcDisplay = getErrorText();
@@ -72,61 +130,18 @@
                 isError = false;
                 isOp = false;
             }
-            private function performAction(action:String):void
-            {
-                if ("C" == action) { // Clear all
-                    clearAll();
-                }
-                
-                if (isError) return;
-                if ("U" == action) { // Undo
-                    calcDisplay = calcDisplay.substr(0, calcDisplay.length - 1);
-                    if (calcDisplay.length == 0 || calcDisplay == "-") {
-                        calcDisplay = "0";
-                    }
-                } else if ("F" == action) { // Flip sign
-                    if(calcDisplay.substr(0, 1) == "-") {
-                        calcDisplay = calcDisplay.substr(1, calcDisplay.length)
-                    } else {
-                        calcDisplay = "-" + calcDisplay
-                    }
-                } else if ("0" == action || "1" == action || "2" == action
-                       || "3" == action || "4" == action || "5" == action
-                       || "6" == action || "7" == action || "8" == action
-                       || "9" == action) {
-                    addDigit(action);
-                } else if ("." == action) {
-                    if (!isNewValue && calcDisplay.indexOf(".") >= 0) {
-                        return;
-                    } else {
-                        if (isNewValue) {
-                            action = "0" + action;
-                        }
-                    }
-                    addDigit(action);
-                } else if ("+" == action || "-" == action
-                       || "*" == action || "/"== action || 
-						"=" == action) { // Operand
-                    if (!isOp || action == "=") {
-    	                value2 = Number(calcDisplay);
-	    				value1 = calculate(valueOperator, value1, value2);
-	    				isNewValue = true;
-                    }
-    				valueOperator = action;
-                     isOp = action == "=" ? false : true;
-                } 
-            }
             private function addDigit(digit:String):void
             {
                 isOp = false;
-                // Restrict to 7 numbers
-                if (!isNewValue && calcDisplay.length >= 7) {
+                // Restrict to 8 symbols
+                if (!isNewValue && calcDisplay.length >= 8) {
                     return;
                 }
                 if (isNewValue) {
                     calcDisplay = digit;
                 } else {
-                    calcDisplay = calcDisplay + digit;
+                    calcDisplay = calcDisplay + digit
+					onChange();
                 }
                 
                 isNewValue = false;
@@ -152,19 +167,32 @@
                 // Deal with floating point errors using a precision of 12 (old trick)
                 var correction:Number = Math.pow(10, 12);
                 answer = Math.round(correction * value1) / correction;
+				onChange();
 				displayAnswer(answer);
                 
 				return answer;
             }
+			private function onChange():void
+			{
+				var ind:int = calcDisplay.indexOf (".");
+				
+				if ( ind > -1 ) {
+					var decimal:String = calcDisplay.substring (ind+1);
+					if (decimal.indexOf (".") > -1) {
+						calcDisplay = calcDisplay.substring (0, ind + 1 + decimal.indexOf("."));
+					}
+					if (decimal.length > 2) {
+						calcDisplay = calcDisplay.substring (0, ind + 3);
+					}
+				}else if (ind == -1 ){
+					calcDisplay = calcDisplay.substring (0, 4); 
+				}				
+			}
         ]]>
 	</mx:Script>
     
-    <mx:Style>
-        Button { fontSize: 9pt; fontFamily: arial; }
-    </mx:Style>
-
     <mx:Panel title="Calculator"
-              height="220"
+			  height="230"
               width="220"
               paddingTop="5"
               paddingLeft="5"
@@ -178,11 +206,11 @@
                                   editable="false"
                                   textAlign="right"
                                   text="{calcDisplay}"
-                                  maxChars="30"
+								  maxChars="8"
                                   width="100%"
                                   borderSkin="{null}"
                                   fontSize="14"
-                                  fontWeight="bold" />
+                                  fontWeight="bold"/>
                 </mx:GridItem>
 		    </mx:GridRow>
 
@@ -190,25 +218,25 @@
 	            <mx:GridItem>
                     <mx:Button label="C"
                                id="clear"
-                               click="performAction('C');" />
+                               click="performAction('C');"/>
                 </mx:GridItem>
 
                 <mx:GridItem>
-                    <mx:Button label="+/-"
+                    <mx:Button label="&#177;"
 							   id="flipSign"
-                               click="performAction('F');" />
+                               click="performAction('F');"/>
                 </mx:GridItem>
 
                 <mx:GridItem>
-                    <mx:Button label="&lt;--"
+                    <mx:Button label="&#171;"
                                id="undo"
-                               click="performAction('U')" />
+                               click="performAction('U')"/>
                 </mx:GridItem>
 
                 <mx:GridItem>
                     <mx:Button label="/"
                                id="divide"
-                               click="performAction('/');" />
+                               click="performAction('/');"/>
                 </mx:GridItem>
             </mx:GridRow>
 
@@ -216,7 +244,7 @@
                 <mx:GridItem>
                     <mx:Button label="7"
                                id="num7"
-                               click="performAction('7');" />
+                               click="performAction('7');"/>
                 </mx:GridItem>
 
                 <mx:GridItem>
@@ -228,13 +256,13 @@
                 <mx:GridItem>
                     <mx:Button label="9"
                                id="num9"
-                               click="performAction('9');" />
+                               click="performAction('9');"/>
                 </mx:GridItem>
 
                 <mx:GridItem>
                     <mx:Button label="X"
                                id="multiply"
-                               click="performAction('*');" />
+                               click="performAction('*');"/>
                 </mx:GridItem>
             </mx:GridRow>
 
@@ -242,25 +270,25 @@
                 <mx:GridItem>
                     <mx:Button label="4"
                                id="num4"
-                               click="performAction('4');" />
+                               click="performAction('4');"/>
                 </mx:GridItem>
 
                 <mx:GridItem>
                     <mx:Button label="5"
                                id="num5"
-                               click="performAction('5');" />
+                               click="performAction('5');"/>
                 </mx:GridItem>
 
                 <mx:GridItem>
                     <mx:Button label="6"
                                id="num6"
-                               click="performAction('6');" />
+                               click="performAction('6');"/>
                 </mx:GridItem>
 
                 <mx:GridItem>
                     <mx:Button label="-"
                                id="subtract"
-                               click="performAction('-');" />
+                               click="performAction('-');"/>
                 </mx:GridItem>
             </mx:GridRow>
 
@@ -268,25 +296,25 @@
                 <mx:GridItem>
                     <mx:Button label="1"
                                id="num1"
-                               click="performAction('1');" />
+                               click="performAction('1');"/>
                 </mx:GridItem>
 
                 <mx:GridItem>
                     <mx:Button label="2"
                                id="num2"
-                               click="performAction('2');" />
+                               click="performAction('2');"/>
                 </mx:GridItem>
 
                 <mx:GridItem>
                     <mx:Button label="3"
                                id="num3"
-                               click="performAction('3');" />
+                               click="performAction('3');"/>
                 </mx:GridItem>
 
 				<mx:GridItem>
                     <mx:Button label="+"
                                id="add"
-                               click="performAction('+');" />
+                               click="performAction('+');"/>
                 </mx:GridItem>
             </mx:GridRow>
 
@@ -294,19 +322,19 @@
                 <mx:GridItem>
                     <mx:Button label="0"
                                id="num0"
-                               click="performAction('0');" />
+                               click="performAction('0');"/>
                 </mx:GridItem>
 
                 <mx:GridItem>
                     <mx:Button label="."
                                id="point"
-                               click="performAction('.');" />
+                               click="performAction('.');"/>
                 </mx:GridItem>
 
                 <mx:GridItem>
                     <mx:Button label="="
                                id="equal"
-                               click="performAction('=');" />
+                               click="performAction('=');"/>
                 </mx:GridItem>
             </mx:GridRow>
         </mx:Grid>
